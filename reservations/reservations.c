@@ -11,6 +11,8 @@ int transaction_count;
 
 int seat_taken_count = 0;
 
+pthread_mutex_t lock_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int reserve_seat(int n)
 {
     // Attempt to reserve seat number n
@@ -21,7 +23,15 @@ int reserve_seat(int n)
     // This function should also increment seat_taken_count if the seat
     // wasn't already taken.
     
-    // TODO
+    pthread_mutex_lock(&lock_mutex);
+    if(seat_taken[n] ) {
+        pthread_mutex_unlock(&lock_mutex);
+        return -1;
+    } else {
+        seat_taken[n] = 1;
+        seat_taken_count++;
+    }
+    pthread_mutex_unlock(&lock_mutex);
 
     return 0;  // Change as necessary--included so it will build
 }
@@ -38,14 +48,22 @@ int free_seat(int n)
 
     // TODO
 
+    pthread_mutex_lock(&lock_mutex);
+    if(!seat_taken[n] ) {
+        pthread_mutex_unlock(&lock_mutex);
+        return -1;
+    } else {
+        seat_taken[n] = 0;
+        seat_taken_count--;
+    }
+    pthread_mutex_unlock(&lock_mutex);
+
     return 0;  // Change as necessary--included so it will build
 }
 
 int is_free(int n) {
     // Returns true if the given seat is available.
-
-    // TODO
-
+    (void) n;
     return 0;  // Change as necessary--included so it will build
 }
 
@@ -62,13 +80,18 @@ int verify_seat_count(void) {
 
     int count = 0;
 
+    pthread_mutex_lock(&lock_mutex);
     // Count all the taken seats
     for (int i = 0; i < seat_count; i++)
         if (seat_taken[i])
             count++;
-
-    // Return true if it's the same as seat_taken_count
-    return count == seat_taken_count;
+    if (seat_taken_count == count) {
+        pthread_mutex_unlock(&lock_mutex);
+        return 1;
+    } else {
+        pthread_mutex_unlock(&lock_mutex);
+        return 0;
+    }
 }
 
 // ------------------- DO NOT MODIFY PAST THIS LINE -------------------
@@ -133,4 +156,3 @@ int main(int argc, char *argv[])
     for (int i = 0; i < broker_count; i++)
         pthread_join(thread[i], NULL);
 }
-
